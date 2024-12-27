@@ -1,0 +1,154 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://yarzamata_fjwm_user:wfu3ubwUkGKIMA8nltykqXtCbOitMGMg@dpg-ct6tmi23esus73fsqpug-a.oregon-postgres.render.com/yarzamata_fjwm" //env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  updatedPasswordAt DateTime?
+
+  fullName String?
+  isAdmin  Boolean @default(false)
+  email    String? @unique
+  password String?
+
+  counter  Int?      @default(0)
+  token    Token?    @relation
+  chats    Chat[]    @relation("UserChats")
+  messages Message[]
+  orders   Order[]
+  carts    Cart[]
+
+  userGuard    UserGuard?    @relation
+  activateUser ActivateUser? @relation
+}
+
+model UserGuard {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  doubleGuardPass Boolean @default(false)
+  authApp         Boolean @default(false)
+
+  doubleGuardPasswords String[]  @default([])
+  expirationPass       DateTime?
+
+  secret2fa String?
+  IV        String?
+  KEY       String?
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model Token {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshToken String[]
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+}
+
+model ActivateUser {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activationLink String
+  activationCode String
+  isActivated    Boolean @default(false)
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  text String
+
+  Chat   Chat? @relation(fields: [chatId], references: [id])
+  chatId Int?
+  User   User? @relation(fields: [userId], references: [id])
+  userId Int?
+}
+
+model Chat {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String
+  messages Message[]
+  users    User[]    @relation("UserChats")
+}
+
+model Order {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  status      String
+  postalCode  String
+  city        String
+  phoneNumber String
+
+  products Product[]
+  user     User?     @relation(fields: [userId], references: [id])
+  userId   Int?      @unique
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String @unique
+  description String
+  inStock     Int?   @default(1)
+  amount      String
+  type        String
+
+  image Bytes?
+
+  order     Order?     @relation(fields: [orderId], references: [id])
+  orderId   Int?
+  cartItems cartItems?
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cartItems cartItems[]
+
+  User   User? @relation(fields: [userId], references: [id])
+  userId Int?  @unique
+}
+
+model cartItems {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quantity  Int      @default(1)
+  products  Product? @relation(fields: [productId], references: [id])
+  productId Int?     @unique
+
+  Cart   Cart? @relation(fields: [cartId], references: [id])
+  cartId Int?  @unique
+}
